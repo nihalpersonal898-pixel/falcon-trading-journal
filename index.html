@@ -25,12 +25,11 @@ h2{font-size:18px;margin:0 0 16px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .grow{flex:1}
 input,select,textarea,button{font:inherit;border-radius:10px;padding:11px 12px;border:1px solid #34465f;background:#0b1524;color:var(--text);width:100%}
-label.field{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
-.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+label.field{display:block;color:var(--muted);font-size:12px;margin:12px 0 6px}
 button{cursor:pointer;background:var(--gold);color:#171b22;border:0;font-weight:750;width:auto}
 button.secondary{background:#26364d;color:var(--text);border:1px solid #3a4c65}
 .hidden{display:none!important}
-.status{padding:10px 12px;border-radius:10px;background:#18283c;color:var(--muted);margin:12px 0}
+.status{padding:10px 12px;border-radius:10px;background:#18283c;color:var(--muted);margin:12px 0;overflow-wrap:anywhere}
 .positive{color:var(--green)}.negative{color:var(--red)}
 table{border-collapse:collapse;width:100%;min-width:680px}
 th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font-size:13px}
@@ -41,8 +40,8 @@ th{color:var(--muted);font-weight:600}
 .tag.loss{color:var(--red);background:#40202a}
 .auth{max-width:480px;margin:40px auto}
 .footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
-@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fields{grid-template-columns:1fr 1fr}main{margin-top:16px}.card{padding:16px}header{padding:16px 18px}}
-@media(max-width:460px){.fields{grid-template-columns:1fr}.stat strong{font-size:21px}}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}main{margin-top:16px}.card{padding:16px}header{padding:16px 18px}}
+@media(max-width:460px){.stat strong{font-size:21px}}
 </style>
 </head>
 <body>
@@ -52,17 +51,24 @@ th{color:var(--muted);font-weight:600}
   <div class="grow"></div>
   <button id="logout" class="secondary hidden">Log out</button>
 </header>
+
 <main>
   <section id="auth" class="auth card">
     <h2>Student / Admin Login</h2>
-    <p class="muted">Sign in or register using your own email. New student accounts require admin approval.</p>
+    <p class="muted">New students must register and wait for admin approval.</p>
+
+    <label class="field">Full Name <span class="small">(required for registration)</span></label>
+    <input id="fullname" type="text" autocomplete="name" placeholder="Enter your full name">
+
     <label class="field">Email</label>
     <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
-    <label class="field" style="margin-top:12px">Password</label>
+
+    <label class="field">Password</label>
     <input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+
     <div class="row" style="margin-top:14px">
-      <button id="signin">Sign in</button>
-      <button id="signup" class="secondary">Register</button>
+      <button id="signin" type="button">Sign in</button>
+      <button id="signup" class="secondary" type="button">Register</button>
     </div>
     <div id="authmsg" class="status">Connecting to the journal...</div>
   </section>
@@ -72,6 +78,7 @@ th{color:var(--muted);font-weight:600}
       <div><h2 id="welcome" style="margin:0">My Journal</h2><p id="roletext" class="muted"></p></div>
       <div class="grow"></div><span class="tag" id="rolebadge">STUDENT</span>
     </div>
+
     <div class="grid">
       <div class="stat"><label>Current Balance</label><strong id="balance">—</strong></div>
       <div class="stat"><label>Net P/L</label><strong id="net">$0.00</strong></div>
@@ -79,10 +86,20 @@ th{color:var(--muted);font-weight:600}
       <div class="stat"><label>Trades Logged</label><strong id="tradecount">0</strong></div>
     </div>
 
-    <section id="entrycard" class="card" style="margin-top:18px">
+    <section class="card" style="margin-top:18px">
+      <h2>My Profile</h2>
+      <label class="field">Full Name</label>
+      <input id="editname" type="text" placeholder="Enter your full name">
+      <div class="row" style="margin-top:12px">
+        <button id="savename" type="button">Update Name</button>
+      </div>
+      <div id="namemsg" class="status hidden"></div>
+    </section>
+
+    <section id="entrycard" class="card">
       <h2>Add a trade</h2>
       <form id="tradeform">
-        <div class="fields">
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:12px">
           <div><label class="field">Trade date</label><input id="trade_date" type="date" required></div>
           <div><label class="field">Symbol</label><input id="symbol" value="XAUUSD" required></div>
           <div><label class="field">Result</label><select id="result"><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Break-even</option></select></div>
@@ -113,6 +130,7 @@ th{color:var(--muted);font-weight:600}
       <div id="adminmsg" class="status hidden"></div>
     </section>
   </section>
+
   <div class="footer">Falcon Trading • Student performance journal • Trading involves risk.</div>
 </main>
 
@@ -121,12 +139,13 @@ th{color:var(--muted);font-weight:600}
 const SUPABASE_URL='https://panuuyruvitfuwtamlfy.supabase.co';
 const SUPABASE_PUBLIC_KEY='sb_publishable_kV2sghfI2FYOVxTYZukfHg_4bWx2i2q';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLIC_KEY);
+
 let currentUser=null,profile=null;
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
 const msg=(id,s)=>{$(id).textContent=s;$(id).classList.remove('hidden')};
 const show=(id,on=true)=>$(id).classList.toggle('hidden',!on);
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>new Date().toLocaleDateString('en-CA');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 $('trade_date').value=today();
 
@@ -136,73 +155,195 @@ async function start(){
   if(data.session){currentUser=data.session.user;await loadProfile()}
   else{show('auth',true);msg('authmsg','Sign in or register with your own account.')}
 }
+
 $('signin').onclick=async()=>{
-  const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
-  if(error){msg('authmsg',error.message);return}
-  currentUser=data.user;await loadProfile();
-};
-$('signup').onclick=async()=>{
   const email=$('email').value.trim(),password=$('password').value;
-  if(password.length<8){msg('authmsg','Use a password with at least 8 characters.');return}
-  const {error}=await sb.auth.signUp({email,password});
+  if(!email||!password){msg('authmsg','Enter your email and password.');return}
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
   if(error){msg('authmsg',error.message);return}
-  msg('authmsg','Registration submitted. Check your email if confirmation is required. Your admin must approve your account.');
+  currentUser=data.user;
+  await loadProfile();
 };
+
+$('signup').onclick=async()=>{
+  const name=$('fullname').value.trim();
+  const email=$('email').value.trim();
+  const password=$('password').value;
+
+  if(!name){msg('authmsg','Please enter your full name.');$('fullname').focus();return}
+  if(!email){msg('authmsg','Please enter your email address.');return}
+  if(password.length<8){msg('authmsg','Use a password with at least 8 characters.');return}
+
+  const {data,error}=await sb.auth.signUp({
+    email,
+    password,
+    options:{data:{full_name:name,display_name:name}}
+  });
+
+  if(error){msg('authmsg',error.message);return}
+
+  // If signup immediately creates an active session, update the profile now.
+  if(data.user && data.session){
+    currentUser=data.user;
+    const {error:updateError}=await sb.from('profiles')
+      .update({full_name:name})
+      .eq('id',data.user.id);
+    if(updateError){
+      msg('authmsg','Account created, but the name could not be saved to the profile yet. Sign in and update your name from My Profile. Details: '+updateError.message);
+      return;
+    }
+    await loadProfile();
+  }else{
+    msg('authmsg','Registration submitted for '+name+'. Check your email if confirmation is required. After confirming, sign in and verify your name under My Profile. Admin approval is still required.');
+  }
+};
+
 $('logout').onclick=async()=>{
-  await sb.auth.signOut();currentUser=null;profile=null;show('app',false);show('auth',true);show('logout',false);
+  await sb.auth.signOut();
+  currentUser=null;profile=null;
+  show('app',false);show('auth',true);show('logout',false);
+  $('password').value='';
+  msg('authmsg','You have logged out.');
 };
+
 async function loadProfile(){
   const {data,error}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
-  if(error){msg('authmsg','Profile error: '+error.message);return}
-  if(!data){msg('authmsg','Profile not found. Please check the Supabase profile trigger.');return}
-  profile=data;show('auth',false);show('app',true);show('logout',true);
-  $('welcome').textContent=data.full_name||currentUser.email.split('@')[0]+"'s Journal";
-  $('roletext').textContent=data.approved?'Logged in as '+currentUser.email:'Account pending admin approval.';
-  $('rolebadge').textContent=data.role.toUpperCase();
-  show('entrycard',data.approved&&data.role!=='admin');
-  show('admincard',data.role==='admin');
-  if(!data.approved&&data.role!=='admin')msg('trademsg','Your account is waiting for admin approval.');
+  if(error){show('app',false);show('auth',true);msg('authmsg','Profile error: '+error.message);return}
+  if(!data){show('app',false);show('auth',true);msg('authmsg','Profile not found. Check the Supabase profile trigger.');return}
+
+  profile=data;
+  // If profile still has the default name, try signup metadata as a fallback.
+  const metadataName=currentUser.user_metadata?.full_name||currentUser.user_metadata?.display_name||'';
+  if((!profile.full_name||profile.full_name==='Student')&&metadataName){
+    const {data:updated,error:updateError}=await sb.from('profiles')
+      .update({full_name:metadataName})
+      .eq('id',currentUser.id)
+      .select('*')
+      .maybeSingle();
+    if(!updateError&&updated)profile=updated;
+  }
+
+  show('auth',false);show('app',true);show('logout',true);
+  $('welcome').textContent=(profile.full_name&&profile.full_name!=='Student'?profile.full_name:currentUser.email.split('@')[0])+"'s Journal";
+  $('roletext').textContent=profile.approved?'Logged in as '+currentUser.email:'Account pending admin approval.';
+  $('rolebadge').textContent=String(profile.role||'student').toUpperCase();
+  $('editname').value=profile.full_name==='Student'?'':(profile.full_name||'');
+  show('entrycard',!!profile.approved&&profile.role!=='admin');
+  show('admincard',profile.role==='admin');
+
+  if(!profile.approved&&profile.role!=='admin')msg('trademsg','Your account is waiting for admin approval.');
   await loadTrades();
-  if(data.role==='admin')await loadStudents();
+  if(profile.role==='admin')await loadStudents();
 }
+
+$('savename').onclick=async()=>{
+  const name=$('editname').value.trim();
+  if(!name){msg('namemsg','Please enter your full name.');return}
+  if(!currentUser){msg('namemsg','Please sign in again.');return}
+
+  const {data,error}=await sb.from('profiles')
+    .update({full_name:name})
+    .eq('id',currentUser.id)
+    .select('*')
+    .maybeSingle();
+
+  if(error){msg('namemsg','Could not update name: '+error.message+' Check the profiles table update policy in Supabase.');return}
+  if(!data){msg('namemsg','No profile was updated. Check the Supabase row-level security policy.');return}
+
+  profile=data;
+  $('welcome').textContent=name+"'s Journal";
+  msg('namemsg','Your name has been updated successfully.');
+  if(profile.role==='admin')await loadStudents();
+};
+
 async function loadTrades(){
-  const {data,error}=await sb.from('trades').select('*').order('trade_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data,error}=await sb.from('trades').select('*')
+    .order('trade_date',{ascending:false})
+    .order('created_at',{ascending:false});
+
   if(error){$('tradesbody').innerHTML='<tr><td colspan="7">'+esc(error.message)+'</td></tr>';return}
-  const trades=data||[],net=trades.reduce((a,t)=>a+Number(t.amount||0),0),wins=trades.filter(t=>t.result==='win').length;
+  const trades=data||[];
+  const net=trades.reduce((a,t)=>a+Number(t.amount||0),0);
+  const wins=trades.filter(t=>t.result==='win').length;
   const latestBal=trades.find(t=>t.balance_after!==null&&t.balance_after!=='');
+
   $('balance').textContent=latestBal?money(latestBal.balance_after):'—';
-  $('net').textContent=money(net);$('net').className=net>=0?'positive':'negative';
+  $('net').textContent=money(net);
+  $('net').className=net>=0?'positive':'negative';
   $('winrate').textContent=(trades.length?Math.round(wins/trades.length*100):0)+'%';
   $('tradecount').textContent=trades.length;
-  $('tradesbody').innerHTML=trades.length?trades.map(t=>`<tr><td>${esc(t.trade_date)}</td><td>${esc(t.symbol)}</td><td>${esc(t.strategy)}</td><td>${esc(t.result)}</td><td class="${Number(t.amount)>=0?'positive':'negative'}">${money(t.amount)}</td><td>${t.balance_after===null?'—':money(t.balance_after)}</td><td>${esc(t.notes||'')}</td></tr>`).join(''):'<tr><td colspan="7" class="muted">No trades yet. Add your first trade above.</td></tr>';
+
+  $('tradesbody').innerHTML=trades.length?trades.map(t=>`<tr>
+    <td>${esc(t.trade_date)}</td><td>${esc(t.symbol)}</td><td>${esc(t.strategy)}</td>
+    <td>${esc(t.result)}</td>
+    <td class="${Number(t.amount)>=0?'positive':'negative'}">${money(t.amount)}</td>
+    <td>${t.balance_after===null||t.balance_after===''?'—':money(t.balance_after)}</td>
+    <td>${esc(t.notes||'')}</td>
+  </tr>`).join(''):'<tr><td colspan="7" class="muted">No trades yet. Add your first trade above.</td></tr>';
 }
+
 $('tradeform').onsubmit=async e=>{
   e.preventDefault();
   if(!profile?.approved||profile.role==='admin')return;
+
   const amount=Number($('amount').value),res=$('result').value;
-  const row={user_id:currentUser.id,trade_date:$('trade_date').value,symbol:$('symbol').value.trim(),result:res,amount:res==='loss'?-Math.abs(amount):res==='win'?Math.abs(amount):0,strategy:$('strategy').value.trim(),balance_after:$('balance_after').value===''?null:Number($('balance_after').value),notes:$('notes').value.trim()};
+  const row={
+    user_id:currentUser.id,
+    trade_date:$('trade_date').value,
+    symbol:$('symbol').value.trim(),
+    result:res,
+    amount:res==='loss'?-Math.abs(amount):res==='win'?Math.abs(amount):0,
+    strategy:$('strategy').value.trim(),
+    balance_after:$('balance_after').value===''?null:Number($('balance_after').value),
+    notes:$('notes').value.trim()
+  };
+
   const {error}=await sb.from('trades').insert(row);
   if(error){msg('trademsg','Could not save trade: '+error.message);return}
-  $('tradeform').reset();$('trade_date').value=today();$('symbol').value='XAUUSD';
-  msg('trademsg','Trade saved successfully.');await loadTrades();
+  $('tradeform').reset();
+  $('trade_date').value=today();
+  $('symbol').value='XAUUSD';
+  msg('trademsg','Trade saved successfully.');
+  await loadTrades();
 };
+
 $('refresh').onclick=loadTrades;
 $('loadstudents').onclick=loadStudents;
+
 async function loadStudents(){
-  const {data:profiles,error}=await sb.from('profiles').select('id,full_name,role,approved,created_at').order('created_at');
+  const {data:profiles,error}=await sb.from('profiles')
+    .select('id,full_name,role,approved,created_at')
+    .order('created_at');
+
   if(error){msg('adminmsg','Could not load students: '+error.message);return}
+
   const {data:trades,error:te}=await sb.from('trades').select('user_id,amount');
   if(te){msg('adminmsg',te.message);return}
+
   $('studentsbody').innerHTML=(profiles||[]).map(p=>{
-    const ts=(trades||[]).filter(t=>t.user_id===p.id),net=ts.reduce((a,t)=>a+Number(t.amount||0),0);
-    return `<tr><td>${esc(p.full_name||'Student')}</td><td>${p.id===currentUser.id?esc(currentUser.email):'Hidden'}</td><td>${p.approved?'Approved':'Pending'}</td><td>${ts.length}</td><td class="${net>=0?'positive':'negative'}">${money(net)}</td><td>${p.role!=='admin'&&!p.approved?`<button class="approve" data-id="${p.id}">Approve</button>`:'—'}</td></tr>`;
+    const ts=(trades||[]).filter(t=>t.user_id===p.id);
+    const net=ts.reduce((a,t)=>a+Number(t.amount||0),0);
+    const studentName=p.full_name&&p.full_name!=='Student'?p.full_name:'Name not set';
+
+    return `<tr>
+      <td>${esc(studentName)}</td>
+      <td>${p.id===currentUser.id?esc(currentUser.email):'Hidden'}</td>
+      <td>${p.approved?'Approved':'Pending'}</td>
+      <td>${ts.length}</td>
+      <td class="${net>=0?'positive':'negative'}">${money(net)}</td>
+      <td>${p.role!=='admin'&&!p.approved?`<button class="approve" data-id="${esc(p.id)}">Approve</button>`:'—'}</td>
+    </tr>`;
   }).join('')||'<tr><td colspan="6">No students registered.</td></tr>';
+
   document.querySelectorAll('.approve').forEach(b=>b.onclick=async()=>{
-    const {error}=await sb.from('profiles').update({approved:true}).eq('id',b.dataset.id);
+    const {error}=await sb.from('profiles')
+      .update({approved:true})
+      .eq('id',b.dataset.id);
     if(error)msg('adminmsg','Approval failed: '+error.message);
     else{msg('adminmsg','Student approved.');await loadStudents()}
   });
 }
+
 start();
 </script>
 </body>
