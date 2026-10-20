@@ -36,9 +36,21 @@ th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font
 th{color:var(--muted);font-weight:600}
 .tablewrap{overflow:auto}
 .tag{display:inline-block;padding:4px 8px;border-radius:99px;font-size:11px;background:#24334a}
-.tag.win{color:var(--green);background:#123526}
-.tag.loss{color:var(--red);background:#40202a}
 .auth{max-width:480px;margin:40px auto}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-day{min-height:78px;background:#0e1828;border:1px solid var(--line);border-radius:10px;padding:8px;overflow:hidden}
+.cal-day .daynum{font-size:12px;color:var(--muted)}
+.cal-day .daypl{font-size:12px;font-weight:750;margin-top:8px;overflow-wrap:anywhere}
+.cal-day.profit{border-color:#23784b;background:#102a22}
+.cal-day.loss{border-color:#853548;background:#301923}
+.cal-day.today{outline:1px solid var(--gold)}
+.cal-week{font-size:11px;text-align:center;color:var(--muted);padding:5px 0}
+.analysis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.analysis-box{background:#0e1828;border:1px solid var(--line);border-radius:12px;padding:13px}
+.analysis-box span{display:block;color:var(--muted);font-size:12px}
+.analysis-box strong{display:block;margin-top:7px;font-size:19px;overflow-wrap:anywhere}
+@media(max-width:560px){.cal-day{min-height:62px;padding:5px}.cal-day .daypl{font-size:10px;margin-top:5px}.analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}main{margin-top:16px}.card{padding:16px}header{padding:16px 18px}}
 @media(max-width:460px){.stat strong{font-size:21px}}
@@ -46,92 +58,106 @@ th{color:var(--muted);font-weight:600}
 </head>
 <body>
 <header>
-  <div class="logo">F</div>
-  <div><h1>FALCON TRADING</h1><p>Student Trading Journal</p></div>
-  <div class="grow"></div>
-  <button id="logout" class="secondary hidden">Log out</button>
+<div class="logo">F</div>
+<div><h1>FALCON TRADING</h1><p>Student Trading Journal</p></div>
+<div class="grow"></div>
+<button id="logout" class="secondary hidden">Log out</button>
 </header>
 
 <main>
-  <section id="auth" class="auth card">
-    <h2>Student / Admin Login</h2>
-    <p class="muted">New students must register and wait for admin approval.</p>
+<section id="auth" class="auth card">
+<h2>Student / Admin Login</h2>
+<p class="muted">New students must register and wait for admin approval.</p>
+<label class="field">Full Name (required for registration)</label>
+<input id="fullname" type="text" autocomplete="name" placeholder="Enter your full name">
+<label class="field">Email</label>
+<input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+<label class="field">Password</label>
+<input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+<div class="row" style="margin-top:14px">
+<button id="signin" type="button">Sign in</button>
+<button id="signup" class="secondary" type="button">Register</button>
+</div>
+<div id="authmsg" class="status">Connecting to the journal...</div>
+</section>
 
-    <label class="field">Full Name <span class="small">(required for registration)</span></label>
-    <input id="fullname" type="text" autocomplete="name" placeholder="Enter your full name">
+<section id="app" class="hidden">
+<div class="row" style="margin-bottom:16px">
+<div><h2 id="welcome" style="margin:0">My Journal</h2><p id="roletext" class="muted"></p></div>
+<div class="grow"></div><span class="tag" id="rolebadge">STUDENT</span>
+</div>
 
-    <label class="field">Email</label>
-    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+<div class="grid">
+<div class="stat"><label>Current Balance</label><strong id="balance">—</strong></div>
+<div class="stat"><label>Net P/L</label><strong id="net">$0.00</strong></div>
+<div class="stat"><label>Win Rate</label><strong id="winrate">0%</strong></div>
+<div class="stat"><label>Trades Logged</label><strong id="tradecount">0</strong></div>
+</div>
 
-    <label class="field">Password</label>
-    <input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+<section class="card" style="margin-top:18px">
+<h2>Performance Analysis</h2>
+<div class="analysis-grid">
+<div class="analysis-box"><span>Winning Trades</span><strong id="winsCount">0</strong></div>
+<div class="analysis-box"><span>Losing Trades</span><strong id="lossesCount">0</strong></div>
+<div class="analysis-box"><span>Break-even Trades</span><strong id="beCount">0</strong></div>
+<div class="analysis-box"><span>Best Day</span><strong id="bestDay">—</strong></div>
+<div class="analysis-box"><span>Worst Day</span><strong id="worstDay">—</strong></div>
+<div class="analysis-box"><span>Profit Factor</span><strong id="profitFactor">—</strong></div>
+</div>
+<h2 style="margin-top:22px">Strategy Performance</h2>
+<div class="tablewrap"><table><thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Win Rate</th><th>Net P/L</th></tr></thead><tbody id="strategybody"></tbody></table></div>
+</section>
 
-    <div class="row" style="margin-top:14px">
-      <button id="signin" type="button">Sign in</button>
-      <button id="signup" class="secondary" type="button">Register</button>
-    </div>
-    <div id="authmsg" class="status">Connecting to the journal...</div>
-  </section>
+<section class="card">
+<div class="calendar-head">
+<h2 style="margin:0">Monthly P/L Calendar</h2>
+<div class="row"><button id="prevMonth" class="secondary" type="button">←</button><strong id="calendarTitle">Month</strong><button id="nextMonth" class="secondary" type="button">→</button></div>
+</div>
+<div class="calendar" id="calendarGrid"></div>
+<p class="small">Green = profit • Red = loss • No colour = no trades. Daily P/L is the sum of trades for that date.</p>
+</section>
 
-  <section id="app" class="hidden">
-    <div class="row" style="margin-bottom:16px">
-      <div><h2 id="welcome" style="margin:0">My Journal</h2><p id="roletext" class="muted"></p></div>
-      <div class="grow"></div><span class="tag" id="rolebadge">STUDENT</span>
-    </div>
+<section class="card">
+<h2>My Profile</h2>
+<label class="field">Full Name</label>
+<input id="editname" type="text" placeholder="Enter your full name">
+<div class="row" style="margin-top:12px"><button id="savename" type="button">Update Name</button></div>
+<div id="namemsg" class="status hidden"></div>
+</section>
 
-    <div class="grid">
-      <div class="stat"><label>Current Balance</label><strong id="balance">—</strong></div>
-      <div class="stat"><label>Net P/L</label><strong id="net">$0.00</strong></div>
-      <div class="stat"><label>Win Rate</label><strong id="winrate">0%</strong></div>
-      <div class="stat"><label>Trades Logged</label><strong id="tradecount">0</strong></div>
-    </div>
+<section id="entrycard" class="card">
+<h2>Add a trade</h2>
+<form id="tradeform">
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:12px">
+<div><label class="field">Trade date</label><input id="trade_date" type="date" required></div>
+<div><label class="field">Symbol</label><input id="symbol" value="XAUUSD" required></div>
+<div><label class="field">Result</label><select id="result"><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Break-even</option></select></div>
+<div><label class="field">Profit / Loss ($)</label><input id="amount" type="number" step="0.01" required placeholder="e.g. 25 or 15"></div>
+<div><label class="field">Strategy</label><input id="strategy" required placeholder="e.g. ICT FVG"></div>
+<div><label class="field">Balance after trade ($)</label><input id="balance_after" type="number" step="0.01" placeholder="Optional"></div>
+</div>
+<label class="field">Notes / lesson learned</label>
+<textarea id="notes" rows="2" placeholder="Trade notes"></textarea>
+<div class="row" style="margin-top:12px"><button type="submit">Save trade</button></div>
+</form>
+<div id="trademsg" class="status hidden"></div>
+</section>
 
-    <section class="card" style="margin-top:18px">
-      <h2>My Profile</h2>
-      <label class="field">Full Name</label>
-      <input id="editname" type="text" placeholder="Enter your full name">
-      <div class="row" style="margin-top:12px">
-        <button id="savename" type="button">Update Name</button>
-      </div>
-      <div id="namemsg" class="status hidden"></div>
-    </section>
+<section class="card">
+<div class="row"><h2 style="margin:0">Trade history</h2><div class="grow"></div><button id="refresh" class="secondary">Refresh</button></div>
+<div class="tablewrap" style="margin-top:12px">
+<table><thead><tr><th>Date</th><th>Symbol</th><th>Strategy</th><th>Result</th><th>P/L</th><th>Balance after</th><th>Notes</th></tr></thead><tbody id="tradesbody"></tbody></table>
+</div>
+</section>
 
-    <section id="entrycard" class="card">
-      <h2>Add a trade</h2>
-      <form id="tradeform">
-        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:12px">
-          <div><label class="field">Trade date</label><input id="trade_date" type="date" required></div>
-          <div><label class="field">Symbol</label><input id="symbol" value="XAUUSD" required></div>
-          <div><label class="field">Result</label><select id="result"><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Break-even</option></select></div>
-          <div><label class="field">Profit / Loss ($)</label><input id="amount" type="number" step="0.01" required placeholder="e.g. 25 or 15"></div>
-          <div><label class="field">Strategy</label><input id="strategy" required placeholder="e.g. ICT FVG"></div>
-          <div><label class="field">Balance after trade ($)</label><input id="balance_after" type="number" step="0.01" placeholder="Optional"></div>
-        </div>
-        <label class="field">Notes / lesson learned</label>
-        <textarea id="notes" rows="2" placeholder="Trade notes"></textarea>
-        <div class="row" style="margin-top:12px"><button type="submit">Save trade</button></div>
-      </form>
-      <div id="trademsg" class="status hidden"></div>
-    </section>
-
-    <section class="card">
-      <div class="row"><h2 style="margin:0">Trade history</h2><div class="grow"></div><button id="refresh" class="secondary">Refresh</button></div>
-      <div class="tablewrap" style="margin-top:12px">
-        <table><thead><tr><th>Date</th><th>Symbol</th><th>Strategy</th><th>Result</th><th>P/L</th><th>Balance after</th><th>Notes</th></tr></thead><tbody id="tradesbody"></tbody></table>
-      </div>
-    </section>
-
-    <section id="admincard" class="card hidden">
-      <div class="row"><h2 style="margin:0">Admin — Student overview</h2><div class="grow"></div><button id="loadstudents" class="secondary">Refresh students</button></div>
-      <p class="muted">Approve new student accounts and review trading totals.</p>
-      <div class="tablewrap">
-        <table><thead><tr><th>Student</th><th>Email</th><th>Status</th><th>Trades</th><th>Net P/L</th><th>Action</th></tr></thead><tbody id="studentsbody"></tbody></table>
-      </div>
-      <div id="adminmsg" class="status hidden"></div>
-    </section>
-  </section>
-
-  <div class="footer">Falcon Trading • Student performance journal • Trading involves risk.</div>
+<section id="admincard" class="card hidden">
+<div class="row"><h2 style="margin:0">Admin — Student overview</h2><div class="grow"></div><button id="loadstudents" class="secondary">Refresh students</button></div>
+<p class="muted">Approve new student accounts and review trading totals.</p>
+<div class="tablewrap"><table><thead><tr><th>Student</th><th>Email</th><th>Status</th><th>Trades</th><th>Net P/L</th><th>Action</th></tr></thead><tbody id="studentsbody"></tbody></table></div>
+<div id="adminmsg" class="status hidden"></div>
+</section>
+</section>
+<div class="footer">Falcon Trading • Student performance journal • Trading involves risk.</div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -140,208 +166,222 @@ const SUPABASE_URL='https://panuuyruvitfuwtamlfy.supabase.co';
 const SUPABASE_PUBLIC_KEY='sb_publishable_kV2sghfI2FYOVxTYZukfHg_4bWx2i2q';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLIC_KEY);
 
-let currentUser=null,profile=null;
+let currentUser=null,profile=null,allTrades=[];
+let calendarMonth=new Date();
+calendarMonth.setDate(1);
+
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n||0));
 const msg=(id,s)=>{$(id).textContent=s;$(id).classList.remove('hidden')};
 const show=(id,on=true)=>$(id).classList.toggle('hidden',!on);
-const today=()=>new Date().toLocaleDateString('en-CA');
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 $('trade_date').value=today();
 
 async function start(){
-  const {data,error}=await sb.auth.getSession();
-  if(error){msg('authmsg',error.message);return}
-  if(data.session){currentUser=data.session.user;await loadProfile()}
-  else{show('auth',true);msg('authmsg','Sign in or register with your own account.')}
+const {data,error}=await sb.auth.getSession();
+if(error){msg('authmsg',error.message);return}
+if(data.session){currentUser=data.session.user;await loadProfile()}
+else{show('auth',true);msg('authmsg','Sign in or register with your own account.')}
 }
 
 $('signin').onclick=async()=>{
-  const email=$('email').value.trim(),password=$('password').value;
-  if(!email||!password){msg('authmsg','Enter your email and password.');return}
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){msg('authmsg',error.message);return}
-  currentUser=data.user;
-  await loadProfile();
+const email=$('email').value.trim(),password=$('password').value;
+if(!email||!password){msg('authmsg','Enter your email and password.');return}
+const {data,error}=await sb.auth.signInWithPassword({email,password});
+if(error){msg('authmsg',error.message);return}
+currentUser=data.user;
+await loadProfile();
 };
 
 $('signup').onclick=async()=>{
-  const name=$('fullname').value.trim();
-  const email=$('email').value.trim();
-  const password=$('password').value;
-
-  if(!name){msg('authmsg','Please enter your full name.');$('fullname').focus();return}
-  if(!email){msg('authmsg','Please enter your email address.');return}
-  if(password.length<8){msg('authmsg','Use a password with at least 8 characters.');return}
-
-  const {data,error}=await sb.auth.signUp({
-    email,
-    password,
-    options:{data:{full_name:name,display_name:name}}
-  });
-
-  if(error){msg('authmsg',error.message);return}
-
-  // If signup immediately creates an active session, update the profile now.
-  if(data.user && data.session){
-    currentUser=data.user;
-    const {error:updateError}=await sb.from('profiles')
-      .update({full_name:name})
-      .eq('id',data.user.id);
-    if(updateError){
-      msg('authmsg','Account created, but the name could not be saved to the profile yet. Sign in and update your name from My Profile. Details: '+updateError.message);
-      return;
-    }
-    await loadProfile();
-  }else{
-    msg('authmsg','Registration submitted for '+name+'. Check your email if confirmation is required. After confirming, sign in and verify your name under My Profile. Admin approval is still required.');
-  }
+const name=$('fullname').value.trim();
+const email=$('email').value.trim();
+const password=$('password').value;
+if(!name){msg('authmsg','Please enter your full name.');$('fullname').focus();return}
+if(!email){msg('authmsg','Please enter your email address.');return}
+if(password.length<8){msg('authmsg','Use a password with at least 8 characters.');return}
+const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:name,display_name:name}}});
+if(error){msg('authmsg',error.message);return}
+if(data.user&&data.session){
+currentUser=data.user;
+const {error:updateError}=await sb.from('profiles').update({full_name:name}).eq('id',data.user.id);
+if(updateError){msg('authmsg','Account created, but name could not be saved yet. Sign in and update it under My Profile. '+updateError.message);return}
+await loadProfile();
+}else{
+msg('authmsg','Registration submitted for '+name+'. Check your email if confirmation is required. After confirming, sign in and verify your name under My Profile. Admin approval is still required.');
+}
 };
 
 $('logout').onclick=async()=>{
-  await sb.auth.signOut();
-  currentUser=null;profile=null;
-  show('app',false);show('auth',true);show('logout',false);
-  $('password').value='';
-  msg('authmsg','You have logged out.');
+await sb.auth.signOut();
+currentUser=null;profile=null;allTrades=[];
+show('app',false);show('auth',true);show('logout',false);
+$('password').value='';
+msg('authmsg','You have logged out.');
 };
 
 async function loadProfile(){
-  const {data,error}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
-  if(error){show('app',false);show('auth',true);msg('authmsg','Profile error: '+error.message);return}
-  if(!data){show('app',false);show('auth',true);msg('authmsg','Profile not found. Check the Supabase profile trigger.');return}
-
-  profile=data;
-  // If profile still has the default name, try signup metadata as a fallback.
-  const metadataName=currentUser.user_metadata?.full_name||currentUser.user_metadata?.display_name||'';
-  if((!profile.full_name||profile.full_name==='Student')&&metadataName){
-    const {data:updated,error:updateError}=await sb.from('profiles')
-      .update({full_name:metadataName})
-      .eq('id',currentUser.id)
-      .select('*')
-      .maybeSingle();
-    if(!updateError&&updated)profile=updated;
-  }
-
-  show('auth',false);show('app',true);show('logout',true);
-  $('welcome').textContent=(profile.full_name&&profile.full_name!=='Student'?profile.full_name:currentUser.email.split('@')[0])+"'s Journal";
-  $('roletext').textContent=profile.approved?'Logged in as '+currentUser.email:'Account pending admin approval.';
-  $('rolebadge').textContent=String(profile.role||'student').toUpperCase();
-  $('editname').value=profile.full_name==='Student'?'':(profile.full_name||'');
-  show('entrycard',!!profile.approved&&profile.role!=='admin');
-  show('admincard',profile.role==='admin');
-
-  if(!profile.approved&&profile.role!=='admin')msg('trademsg','Your account is waiting for admin approval.');
-  await loadTrades();
-  if(profile.role==='admin')await loadStudents();
+const {data,error}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
+if(error){show('app',false);show('auth',true);msg('authmsg','Profile error: '+error.message);return}
+if(!data){show('app',false);show('auth',true);msg('authmsg','Profile not found. Check the Supabase profile trigger.');return}
+profile=data;
+const metadataName=currentUser.user_metadata?.full_name||currentUser.user_metadata?.display_name||'';
+if((!profile.full_name||profile.full_name==='Student')&&metadataName){
+const {data:updated,error:updateError}=await sb.from('profiles').update({full_name:metadataName}).eq('id',currentUser.id).select('*').maybeSingle();
+if(!updateError&&updated)profile=updated;
+}
+show('auth',false);show('app',true);show('logout',true);
+$('welcome').textContent=(profile.full_name&&profile.full_name!=='Student'?profile.full_name:currentUser.email.split('@')[0])+"'s Journal";
+$('roletext').textContent=profile.approved?'Logged in as '+currentUser.email:'Account pending admin approval.';
+$('rolebadge').textContent=String(profile.role||'student').toUpperCase();
+$('editname').value=profile.full_name==='Student'?'':(profile.full_name||'');
+show('entrycard',!!profile.approved&&profile.role!=='admin');
+show('admincard',profile.role==='admin');
+if(!profile.approved&&profile.role!=='admin')msg('trademsg','Your account is waiting for admin approval.');
+await loadTrades();
+if(profile.role==='admin')await loadStudents();
 }
 
 $('savename').onclick=async()=>{
-  const name=$('editname').value.trim();
-  if(!name){msg('namemsg','Please enter your full name.');return}
-  if(!currentUser){msg('namemsg','Please sign in again.');return}
-
-  const {data,error}=await sb.from('profiles')
-    .update({full_name:name})
-    .eq('id',currentUser.id)
-    .select('*')
-    .maybeSingle();
-
-  if(error){msg('namemsg','Could not update name: '+error.message+' Check the profiles table update policy in Supabase.');return}
-  if(!data){msg('namemsg','No profile was updated. Check the Supabase row-level security policy.');return}
-
-  profile=data;
-  $('welcome').textContent=name+"'s Journal";
-  msg('namemsg','Your name has been updated successfully.');
-  if(profile.role==='admin')await loadStudents();
+const name=$('editname').value.trim();
+if(!name){msg('namemsg','Please enter your full name.');return}
+if(!currentUser){msg('namemsg','Please sign in again.');return}
+const {data,error}=await sb.from('profiles').update({full_name:name}).eq('id',currentUser.id).select('*').maybeSingle();
+if(error){msg('namemsg','Could not update name: '+error.message+' Check the profiles table update policy in Supabase.');return}
+if(!data){msg('namemsg','No profile was updated. Check the Supabase row-level security policy.');return}
+profile=data;
+$('welcome').textContent=name+"'s Journal";
+msg('namemsg','Your name has been updated successfully.');
+if(profile.role==='admin')await loadStudents();
 };
 
 async function loadTrades(){
-  const {data,error}=await sb.from('trades').select('*')
-    .order('trade_date',{ascending:false})
-    .order('created_at',{ascending:false});
-
-  if(error){$('tradesbody').innerHTML='<tr><td colspan="7">'+esc(error.message)+'</td></tr>';return}
-  const trades=data||[];
-  const net=trades.reduce((a,t)=>a+Number(t.amount||0),0);
-  const wins=trades.filter(t=>t.result==='win').length;
-  const latestBal=trades.find(t=>t.balance_after!==null&&t.balance_after!=='');
-
-  $('balance').textContent=latestBal?money(latestBal.balance_after):'—';
-  $('net').textContent=money(net);
-  $('net').className=net>=0?'positive':'negative';
-  $('winrate').textContent=(trades.length?Math.round(wins/trades.length*100):0)+'%';
-  $('tradecount').textContent=trades.length;
-
-  $('tradesbody').innerHTML=trades.length?trades.map(t=>`<tr>
-    <td>${esc(t.trade_date)}</td><td>${esc(t.symbol)}</td><td>${esc(t.strategy)}</td>
-    <td>${esc(t.result)}</td>
-    <td class="${Number(t.amount)>=0?'positive':'negative'}">${money(t.amount)}</td>
-    <td>${t.balance_after===null||t.balance_after===''?'—':money(t.balance_after)}</td>
-    <td>${esc(t.notes||'')}</td>
-  </tr>`).join(''):'<tr><td colspan="7" class="muted">No trades yet. Add your first trade above.</td></tr>';
+const {data,error}=await sb.from('trades').select('*').order('trade_date',{ascending:false}).order('created_at',{ascending:false});
+if(error){$('tradesbody').innerHTML='<tr><td colspan="7">'+esc(error.message)+'</td></tr>';return}
+const trades=data||[];
+allTrades=trades;
+const net=trades.reduce((a,t)=>a+Number(t.amount||0),0);
+const wins=trades.filter(t=>t.result==='win').length;
+const latestBal=trades.find(t=>t.balance_after!==null&&t.balance_after!=='');
+$('balance').textContent=latestBal?money(latestBal.balance_after):'—';
+$('net').textContent=money(net);
+$('net').className=net>=0?'positive':'negative';
+$('winrate').textContent=(trades.length?Math.round(wins/trades.length*100):0)+'%';
+$('tradecount').textContent=trades.length;
+$('tradesbody').innerHTML=trades.length?trades.map(t=>`<tr>
+<td>${esc(t.trade_date)}</td><td>${esc(t.symbol)}</td><td>${esc(t.strategy)}</td>
+<td>${esc(t.result)}</td>
+<td class="${Number(t.amount)>=0?'positive':'negative'}">${money(t.amount)}</td>
+<td>${t.balance_after===null||t.balance_after===''?'—':money(t.balance_after)}</td>
+<td>${esc(t.notes||'')}</td>
+</tr>`).join(''):'<tr><td colspan="7" class="muted">No trades yet. Add your first trade above.</td></tr>';
+renderAnalysis(trades);
+renderCalendar();
 }
 
+function renderAnalysis(trades){
+const wins=trades.filter(t=>t.result==='win');
+const losses=trades.filter(t=>t.result==='loss');
+const bes=trades.filter(t=>t.result==='breakeven');
+$('winsCount').textContent=wins.length;
+$('lossesCount').textContent=losses.length;
+$('beCount').textContent=bes.length;
+const daily={};
+trades.forEach(t=>{if(t.trade_date)daily[t.trade_date]=(daily[t.trade_date]||0)+Number(t.amount||0)});
+const days=Object.entries(daily);
+if(days.length){
+const best=days.reduce((a,b)=>b[1]>a[1]?b:a);
+const worst=days.reduce((a,b)=>b[1]<a[1]?b:a);
+$('bestDay').textContent=money(best[1])+' ('+best[0]+')';
+$('worstDay').textContent=money(worst[1])+' ('+worst[0]+')';
+}else{$('bestDay').textContent='—';$('worstDay').textContent='—'}
+const grossProfit=wins.reduce((a,t)=>a+Math.max(0,Number(t.amount||0)),0);
+const grossLoss=Math.abs(losses.reduce((a,t)=>a+Math.min(0,Number(t.amount||0)),0));
+$('profitFactor').textContent=grossLoss===0?(grossProfit>0?'∞':'—'):(grossProfit/grossLoss).toFixed(2);
+const strategies={};
+trades.forEach(t=>{
+const name=(t.strategy||'Unspecified').trim()||'Unspecified';
+if(!strategies[name])strategies[name]={count:0,wins:0,net:0};
+strategies[name].count++;
+if(t.result==='win')strategies[name].wins++;
+strategies[name].net+=Number(t.amount||0);
+});
+const rows=Object.entries(strategies).sort((a,b)=>b[1].net-a[1].net);
+$('strategybody').innerHTML=rows.length?rows.map(([name,v])=>`<tr><td>${esc(name)}</td><td>${v.count}</td><td>${v.wins}</td><td>${Math.round(v.wins/v.count*100)}%</td><td class="${v.net>=0?'positive':'negative'}">${money(v.net)}</td></tr>`).join(''):'<tr><td colspan="5" class="muted">No strategy data yet.</td></tr>';
+}
+
+function renderCalendar(){
+const y=calendarMonth.getFullYear(),m=calendarMonth.getMonth();
+$('calendarTitle').textContent=new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const first=new Date(y,m,1).getDay(),daysInMonth=new Date(y,m+1,0).getDate();
+const daily={};
+allTrades.forEach(t=>{if(t.trade_date)daily[t.trade_date]=(daily[t.trade_date]||0)+Number(t.amount||0)});
+const now=today();
+let html=names.map(n=>`<div class="cal-week">${n}</div>`).join('');
+for(let i=0;i<first;i++)html+='<div class="cal-day" style="visibility:hidden"></div>';
+for(let d=1;d<=daysInMonth;d++){
+const key=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const has=Object.prototype.hasOwnProperty.call(daily,key),v=daily[key]||0;
+const cls=has?(v>0?'profit':v<0?'loss':''):'';
+html+=`<div class="cal-day ${cls} ${key===now?'today':''}"><div class="daynum">${d}</div><div class="daypl ${has?(v>=0?'positive':'negative'):''}">${has?money(v):'—'}</div></div>`;
+}
+$('calendarGrid').innerHTML=html;
+}
+$('prevMonth').onclick=()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);renderCalendar()};
+$('nextMonth').onclick=()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);renderCalendar()};
+
 $('tradeform').onsubmit=async e=>{
-  e.preventDefault();
-  if(!profile?.approved||profile.role==='admin')return;
-
-  const amount=Number($('amount').value),res=$('result').value;
-  const row={
-    user_id:currentUser.id,
-    trade_date:$('trade_date').value,
-    symbol:$('symbol').value.trim(),
-    result:res,
-    amount:res==='loss'?-Math.abs(amount):res==='win'?Math.abs(amount):0,
-    strategy:$('strategy').value.trim(),
-    balance_after:$('balance_after').value===''?null:Number($('balance_after').value),
-    notes:$('notes').value.trim()
-  };
-
-  const {error}=await sb.from('trades').insert(row);
-  if(error){msg('trademsg','Could not save trade: '+error.message);return}
-  $('tradeform').reset();
-  $('trade_date').value=today();
-  $('symbol').value='XAUUSD';
-  msg('trademsg','Trade saved successfully.');
-  await loadTrades();
+e.preventDefault();
+if(!profile?.approved||profile.role==='admin')return;
+const amount=Number($('amount').value),res=$('result').value;
+const row={
+user_id:currentUser.id,
+trade_date:$('trade_date').value,
+symbol:$('symbol').value.trim(),
+result:res,
+amount:res==='loss'?-Math.abs(amount):res==='win'?Math.abs(amount):0,
+strategy:$('strategy').value.trim(),
+balance_after:$('balance_after').value===''?null:Number($('balance_after').value),
+notes:$('notes').value.trim()
+};
+const {error}=await sb.from('trades').insert(row);
+if(error){msg('trademsg','Could not save trade: '+error.message);return}
+$('tradeform').reset();
+$('trade_date').value=today();
+$('symbol').value='XAUUSD';
+msg('trademsg','Trade saved successfully.');
+await loadTrades();
 };
 
 $('refresh').onclick=loadTrades;
 $('loadstudents').onclick=loadStudents;
 
 async function loadStudents(){
-  const {data:profiles,error}=await sb.from('profiles')
-    .select('id,full_name,role,approved,created_at')
-    .order('created_at');
-
-  if(error){msg('adminmsg','Could not load students: '+error.message);return}
-
-  const {data:trades,error:te}=await sb.from('trades').select('user_id,amount');
-  if(te){msg('adminmsg',te.message);return}
-
-  $('studentsbody').innerHTML=(profiles||[]).map(p=>{
-    const ts=(trades||[]).filter(t=>t.user_id===p.id);
-    const net=ts.reduce((a,t)=>a+Number(t.amount||0),0);
-    const studentName=p.full_name&&p.full_name!=='Student'?p.full_name:'Name not set';
-
-    return `<tr>
-      <td>${esc(studentName)}</td>
-      <td>${p.id===currentUser.id?esc(currentUser.email):'Hidden'}</td>
-      <td>${p.approved?'Approved':'Pending'}</td>
-      <td>${ts.length}</td>
-      <td class="${net>=0?'positive':'negative'}">${money(net)}</td>
-      <td>${p.role!=='admin'&&!p.approved?`<button class="approve" data-id="${esc(p.id)}">Approve</button>`:'—'}</td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="6">No students registered.</td></tr>';
-
-  document.querySelectorAll('.approve').forEach(b=>b.onclick=async()=>{
-    const {error}=await sb.from('profiles')
-      .update({approved:true})
-      .eq('id',b.dataset.id);
-    if(error)msg('adminmsg','Approval failed: '+error.message);
-    else{msg('adminmsg','Student approved.');await loadStudents()}
-  });
+const {data:profiles,error}=await sb.from('profiles').select('id,full_name,role,approved,created_at').order('created_at');
+if(error){msg('adminmsg','Could not load students: '+error.message);return}
+const {data:trades,error:te}=await sb.from('trades').select('user_id,amount');
+if(te){msg('adminmsg',te.message);return}
+$('studentsbody').innerHTML=(profiles||[]).map(p=>{
+const ts=(trades||[]).filter(t=>t.user_id===p.id);
+const net=ts.reduce((a,t)=>a+Number(t.amount||0),0);
+const studentName=p.full_name&&p.full_name!=='Student'?p.full_name:'Name not set';
+return `<tr>
+<td>${esc(studentName)}</td>
+<td>${p.id===currentUser.id?esc(currentUser.email):'Hidden'}</td>
+<td>${p.approved?'Approved':'Pending'}</td>
+<td>${ts.length}</td>
+<td class="${net>=0?'positive':'negative'}">${money(net)}</td>
+<td>${p.role!=='admin'&&!p.approved?`<button class="approve" data-id="${esc(p.id)}">Approve</button>`:'—'}</td>
+</tr>`;
+}).join('')||'<tr><td colspan="6">No students registered.</td></tr>';
+document.querySelectorAll('.approve').forEach(b=>b.onclick=async()=>{
+const {error}=await sb.from('profiles').update({approved:true}).eq('id',b.dataset.id);
+if(error)msg('adminmsg','Approval failed: '+error.message);
+else{msg('adminmsg','Student approved.');await loadStudents()}
+});
 }
 
 start();
