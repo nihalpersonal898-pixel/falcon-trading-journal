@@ -146,8 +146,27 @@ th{color:var(--muted);font-weight:600}
 <section class="card">
 <div class="row"><h2 style="margin:0">Trade history</h2><div class="grow"></div><button id="refresh" class="secondary">Refresh</button></div>
 <div class="tablewrap" style="margin-top:12px">
-<table><thead><tr><th>Date</th><th>Symbol</th><th>Strategy</th><th>Result</th><th>P/L</th><th>Balance after</th><th>Notes</th></tr></thead><tbody id="tradesbody"></tbody></table>
+<table><thead><tr><th>Date</th><th>Symbol</th><th>Strategy</th><th>Result</th><th>P/L</th><th>Balance after</th><th>Notes</th><th>Action</th></tr></thead><tbody id="tradesbody"></tbody></table>
 </div>
+</section>
+
+<section id="editTradeBox" class="card hidden">
+<h2>✏️ Edit Trade</h2>
+<form id="editTradeForm">
+<input id="editTradeId" type="hidden">
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:12px">
+<div><label class="field">Trade date</label><input id="edit_date" type="date" required></div>
+<div><label class="field">Symbol</label><input id="edit_symbol" required></div>
+<div><label class="field">Result</label><select id="edit_result"><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Break-even</option></select></div>
+<div><label class="field">Profit / Loss ($)</label><input id="edit_amount" type="number" step="0.01" min="0" required></div>
+<div><label class="field">Strategy</label><input id="edit_strategy" required></div>
+<div><label class="field">Balance after trade ($)</label><input id="edit_balance" type="number" step="0.01" placeholder="Optional"></div>
+</div>
+<label class="field">Notes / lesson learned</label>
+<textarea id="edit_notes" rows="2" placeholder="Trade notes"></textarea>
+<div class="row" style="margin-top:12px"><button type="submit" id="saveEditBtn">Save Changes</button><button type="button" id="cancelEdit" class="secondary">Cancel</button></div>
+</form>
+<div id="editTradeMsg" class="status hidden"></div>
 </section>
 
 <section id="admincard" class="card hidden">
@@ -259,7 +278,7 @@ if(profile.role==='admin')await loadStudents();
 
 async function loadTrades(){
 const {data,error}=await sb.from('trades').select('*').order('trade_date',{ascending:false}).order('created_at',{ascending:false});
-if(error){$('tradesbody').innerHTML='<tr><td colspan="7">'+esc(error.message)+'</td></tr>';return}
+if(error){$('tradesbody').innerHTML='<tr><td colspan="8">'+esc(error.message)+'</td></tr>';return}
 const trades=data||[];
 allTrades=trades;
 const net=trades.reduce((a,t)=>a+Number(t.amount||0),0);
@@ -276,10 +295,44 @@ $('tradesbody').innerHTML=trades.length?trades.map(t=>`<tr>
 <td class="${Number(t.amount)>=0?'positive':'negative'}">${money(t.amount)}</td>
 <td>${t.balance_after===null||t.balance_after===''?'—':money(t.balance_after)}</td>
 <td>${esc(t.notes||'')}</td>
-</tr>`).join(''):'<tr><td colspan="7" class="muted">No trades yet. Add your first trade above.</td></tr>';
+<td><button type="button" class="secondary edit-trade-btn" data-id="${esc(t.id)}">Edit</button></td>
+</tr>`).join(''):'<tr><td colspan="8" class="muted">No trades yet. Add your first trade above.</td></tr>';
+document.querySelectorAll('.edit-trade-btn').forEach(b=>b.onclick=()=>openEditTrade(b.dataset.id));
 renderAnalysis(trades);
 renderCalendar();
 }
+
+function openEditTrade(id){
+const trade=allTrades.find(t=>String(t.id)===String(id));
+if(!trade){msg('editTradeMsg','Trade not found. Refresh and try again.');show('editTradeBox',true);return}
+$('editTradeId').value=String(trade.id);
+$('edit_date').value=trade.trade_date||'';
+$('edit_symbol').value=trade.symbol||'';
+$('edit_result').value=trade.result||'breakeven';
+$('edit_amount').value=Math.abs(Number(trade.amount||0));
+$('edit_strategy').value=trade.strategy||'';
+$('edit_balance').value=trade.balance_after===null||trade.balance_after===''?'':trade.balance_after;
+$('edit_notes').value=trade.notes||'';
+$('editTradeMsg').textContent='';show('editTradeMsg',false);show('editTradeBox',true);
+$('editTradeBox').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('cancelEdit').onclick=()=>{show('editTradeBox',false);$('editTradeForm').reset()};
+$('editTradeForm').onsubmit=async e=>{
+e.preventDefault();
+if(!currentUser){msg('editTradeMsg','Please sign in again.');return}
+const result=$('edit_result').value,amount=Math.abs(Number($('edit_amount').value));
+if(!Number.isFinite(amount)){msg('editTradeMsg','Enter a valid amount.');return}
+const row={trade_date:$('edit_date').value,symbol:$('edit_symbol').value.trim(),result,amount:result==='loss'?-amount:result==='win'?amount:0,strategy:$('edit_strategy').value.trim(),balance_after:$('edit_balance').value===''?null:Number($('edit_balance').value),notes:$('edit_notes').value.trim()};
+if(!row.trade_date||!row.symbol||!row.strategy){msg('editTradeMsg','Complete the date, symbol and strategy fields.');return}
+$('saveEditBtn').disabled=true;$('saveEditBtn').textContent='Saving...';
+try{
+const {data,error}=await sb.from('trades').update(row).eq('id',$('editTradeId').value).eq('user_id',currentUser.id).select('id');
+if(error){msg('editTradeMsg','Update failed: '+error.message+' Check the trades UPDATE policy in Supabase.');return}
+if(!data||data.length===0){msg('editTradeMsg','No trade was updated. Check that the trades table has an id column and an UPDATE policy for the owner.');return}
+show('editTradeBox',false);$('editTradeForm').reset();msg('trademsg','Trade updated successfully.');await loadTrades();
+}catch(err){msg('editTradeMsg','Update failed: '+(err.message||String(err)))}
+finally{$('saveEditBtn').disabled=false;$('saveEditBtn').textContent='Save Changes'}
+};
 
 function renderAnalysis(trades){
 const wins=trades.filter(t=>t.result==='win');
