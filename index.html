@@ -269,7 +269,15 @@ th{color:var(--muted);font-weight:600}
 <script>
 const SUPABASE_URL='https://panuuyruvitfuwtamlfy.supabase.co';
 const SUPABASE_PUBLIC_KEY='sb_publishable_kV2sghfI2FYOVxTYZukfHg_4bWx2i2q';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLIC_KEY);
+if (!window.supabase || !window.supabase.createClient) {
+  document.getElementById('authmsg').textContent =
+    'Connection library failed to load. Refresh the page or check your internet connection.';
+  throw new Error('Supabase JavaScript library did not load.');
+}
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLIC_KEY
+);
 
 let currentUser=null,profile=null,allTrades=[],calendarMonth=new Date(),editingTradeId=null;
 const $=id=>document.getElementById(id);
